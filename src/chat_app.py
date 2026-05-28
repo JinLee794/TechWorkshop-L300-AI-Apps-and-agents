@@ -11,14 +11,16 @@ import orjson  # Faster JSON library
 from dotenv import load_dotenv
 from opentelemetry import trace
 import logging
-# from opentelemetry.instrumentation.openai_v2 import OpenAIInstrumentor
+from opentelemetry.instrumentation.openai_v2 import OpenAIInstrumentor
 
 # Azure & OpenAI Imports
 from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential
 from openai import AzureOpenAI
-# from azure.monitor.opentelemetry import configure_azure_monitor
-# from azure.ai.agents.telemetry import trace_function
+from azure.monitor.opentelemetry import configure_azure_monitor
+from azure.ai.agents.telemetry import trace_function
+from handlers.single_agent_handler import handle_single_agent
+
 
 # FastAPI Imports
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -64,9 +66,9 @@ logger = logging.getLogger(__name__)
 # Global thread pool executor for CPU-bound operations
 thread_pool = ThreadPoolExecutor(max_workers=4)
 
-# application_insights_connection_string = os.environ["APPLICATIONINSIGHTS_CONNECTION_STRING"]
-# configure_azure_monitor(connection_string=application_insights_connection_string)
-# OpenAIInstrumentor().instrument()
+application_insights_connection_string = os.environ["APPLICATIONINSIGHTS_CONNECTION_STRING"]
+configure_azure_monitor(connection_string=application_insights_connection_string)
+OpenAIInstrumentor().instrument()
 
 scenario = os.path.basename(__file__)
 tracer = trace.get_tracer(__name__)
@@ -244,14 +246,14 @@ async def websocket_endpoint(websocket: WebSocket):
             
             chat_history = parse_conversation_history(conversation_history, chat_history, user_message)
             
-            await websocket.send_text(fast_json_dumps({"answer": "This application is not yet ready to serve results. Please check back later.", "agent": None, "cart": persistent_cart}))
+            # await websocket.send_text(fast_json_dumps({"answer": "This application is not yet ready to serve results. Please check back later.", "agent": None, "cart": persistent_cart}))
 
             # =================================================================
             # EXERCISE 02: Single-agent example
             # Uncomment the import at the top of this file and the block below
             # to route all messages through a single Azure OpenAI agent.
             # =================================================================
-            # await handle_single_agent(websocket, user_message, persistent_cart)
+            await handle_single_agent(websocket, user_message, persistent_cart)
 
             # =================================================================
             # EXERCISE 02 (continued): Multi-agent example
